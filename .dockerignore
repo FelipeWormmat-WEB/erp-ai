@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+00-LEIA-ME.md
+01-SPEC.md
+02-PLANO-DE-ACAO.md
+03-ARQUITETURA-E-RESPOSTAS.md
+04-CONTEXTO-PARA-IA.md
+Prova - Back-end vA.pdf

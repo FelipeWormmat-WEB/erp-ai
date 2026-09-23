@@ -1,3 +1,15 @@
+# Ambientes virtuais
 venv/
 .venv/
 .requirements/
+
+# Artefatos do Python e dos testes
+__pycache__/
+.pytest_cache/
+
+# Configuracao local e segredos
+.env
+
+# Editores
+.idea/
+.vscode/
