@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.integrations.product_cache import CacheStatus, product_cache
 from app.models.product import Product
 from app.repositories.products import product_repository
 from app.schemas.products import (
@@ -35,6 +36,19 @@ class ProductService:
             raise ProductNotFoundError
         return product
 
+    async def get_detail(
+        self, session: AsyncSession, product_id: uuid.UUID
+    ) -> tuple[ProductRead, CacheStatus]:
+        cached, cache_status = await product_cache.get(product_id)
+        if cached is not None:
+            return cached, cache_status
+
+        product = await self.get(session, product_id)
+        product_read = ProductRead.model_validate(product)
+        if cache_status == "MISS":
+            await product_cache.set(product_read)
+        return product_read, cache_status
+
     async def list(
         self, session: AsyncSession, filters: ProductFilters
     ) -> ProductPage:
@@ -61,12 +75,14 @@ class ProductService:
         product.data_atualizacao = datetime.now(UTC)
         await session.commit()
         await session.refresh(product)
+        await product_cache.invalidate(product.id)
         return product
 
     async def delete(self, session: AsyncSession, product_id: uuid.UUID) -> None:
         product = await self.get(session, product_id)
         await product_repository.delete(session, product)
         await session.commit()
+        await product_cache.invalidate(product_id)
 
 
 product_service = ProductService()

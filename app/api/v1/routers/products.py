@@ -42,14 +42,16 @@ async def list_products(
 @router.get("/{product_id}", response_model=ProductRead)
 async def get_product(
     product_id: uuid.UUID,
+    response: Response,
     session: DatabaseSession,
     _: CurrentUser,
 ) -> ProductRead:
     try:
-        product = await product_service.get(session, product_id)
+        product, cache_status = await product_service.get_detail(session, product_id)
     except ProductNotFoundError as exc:
         raise_product_not_found(exc)
-    return ProductRead.model_validate(product)
+    response.headers["X-Cache"] = cache_status
+    return product
 
 
 @router.put("/{product_id}", response_model=ProductRead)

@@ -70,6 +70,13 @@ async def test_authenticated_product_crud_and_filters() -> None:
                 f"/api/v1/products/{product_id}", headers=headers
             )
             assert fetched.status_code == 200
+            assert fetched.headers["x-cache"] == "MISS"
+
+            cached = await client.get(
+                f"/api/v1/products/{product_id}", headers=headers
+            )
+            assert cached.status_code == 200
+            assert cached.headers["x-cache"] == "HIT"
 
             filtered = await client.get(
                 "/api/v1/products",
@@ -95,6 +102,13 @@ async def test_authenticated_product_crud_and_filters() -> None:
             )
             assert patched.status_code == 200, patched.text
             assert patched.json()["quantidade_em_estoque"] == 12
+
+            after_patch = await client.get(
+                f"/api/v1/products/{product_id}", headers=headers
+            )
+            assert after_patch.status_code == 200
+            assert after_patch.headers["x-cache"] == "MISS"
+            assert after_patch.json()["quantidade_em_estoque"] == 12
 
             replaced = await client.put(
                 f"/api/v1/products/{product_id}",
