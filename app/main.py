@@ -75,6 +75,10 @@ async def request_context(request: Request, call_next) -> Response:
         )
 
     response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
     log_context = {
         "request_id": request_id,
         "method": request.method,

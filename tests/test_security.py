@@ -29,7 +29,7 @@ def test_access_token_round_trip_and_tampering() -> None:
     assert expires_in == 1800
     assert decode_access_token(token) == user_id
 
-    with pytest.raises(ValueError, match="Token inválido"):
+    with pytest.raises(ValueError):
         decode_access_token(f"{token}invalid")
 
 
@@ -46,5 +46,34 @@ def test_expired_access_token_is_rejected() -> None:
         algorithm="HS256",
     )
 
-    with pytest.raises(ValueError, match="Token inválido"):
+    with pytest.raises(ValueError):
+        decode_access_token(token)
+
+
+def test_access_token_without_required_claims_is_rejected() -> None:
+    settings = get_settings()
+    token = jwt.encode(
+        {"sub": str(uuid.uuid4())},
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+
+    with pytest.raises(ValueError):
+        decode_access_token(token)
+
+
+def test_access_token_with_invalid_subject_is_rejected() -> None:
+    settings = get_settings()
+    now = datetime.now(UTC)
+    token = jwt.encode(
+        {
+            "sub": "not-a-uuid",
+            "iat": now,
+            "exp": now + timedelta(minutes=1),
+        },
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+
+    with pytest.raises(ValueError):
         decode_access_token(token)

@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -9,6 +10,13 @@ from app.core.config import get_settings
 
 
 password_hash = PasswordHash.recommended()
+
+
+@dataclass(frozen=True)
+class TokenClaims:
+    subject: uuid.UUID
+    jwt_id: str
+    expires_at: datetime
 
 
 def hash_password(password: str) -> str:
@@ -25,6 +33,7 @@ def create_access_token(user_id: uuid.UUID) -> tuple[str, int]:
     expires_in = settings.access_token_expire_minutes * 60
     payload = {
         "sub": str(user_id),
+        "jti": str(uuid.uuid4()),
         "iat": now,
         "exp": now + timedelta(seconds=expires_in),
     }
@@ -33,14 +42,22 @@ def create_access_token(user_id: uuid.UUID) -> tuple[str, int]:
 
 
 def decode_access_token(token: str) -> uuid.UUID:
+    return decode_access_token_claims(token).subject
+
+
+def decode_access_token_claims(token: str) -> TokenClaims:
     settings = get_settings()
     try:
         payload = jwt.decode(
             token,
             settings.jwt_secret,
             algorithms=["HS256"],
-            options={"require": ["sub", "iat", "exp"]},
+            options={"require": ["sub", "jti", "iat", "exp"]},
         )
-        return uuid.UUID(payload["sub"])
+        return TokenClaims(
+            subject=uuid.UUID(payload["sub"]),
+            jwt_id=str(payload["jti"]),
+            expires_at=datetime.fromtimestamp(payload["exp"], UTC),
+        )
     except (InvalidTokenError, KeyError, TypeError, ValueError) as exc:
-        raise ValueError("Token inválido") from exc
+        raise ValueError("Token invalido") from exc

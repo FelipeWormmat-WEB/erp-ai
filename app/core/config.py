@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     redis_timeout_seconds: float = Field(default=0.2, gt=0, le=5)
     jwt_secret: str = Field(min_length=32)
     access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
+    login_rate_limit_attempts: int = Field(default=5, ge=1, le=100)
+    login_rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
     seed_username: str = Field(min_length=3, max_length=50)
     seed_password: str = Field(min_length=8)
 

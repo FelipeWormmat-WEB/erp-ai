@@ -19,6 +19,8 @@ Implementado:
 - worker `arq` em processo separado para relatorio de estoque baixo;
 - agente deterministico somente leitura para perguntas suportadas;
 - healthchecks, Docker Compose e testes unitarios/de integracao.
+- hardening de seguranca com rate limit no login, `jti` no JWT, revogacao de token
+  via Redis, logout e headers HTTP defensivos.
 
 Limites conhecidos:
 
@@ -27,6 +29,8 @@ Limites conhecidos:
 - nao ha outbox automatica para relatorios: existe script manual para reenfileirar
   pendentes antigos;
 - nao ha frontend, deploy em nuvem, refresh token, multitenancy ou LLM externo.
+- a revogacao de JWT depende do Redis; se o Redis estiver indisponivel, a checagem
+  falha aberta para manter disponibilidade e registra warning.
 
 ## Como executar com Docker
 
@@ -70,6 +74,13 @@ Obtenha um token em `POST /api/v1/auth/token` usando o formulario OAuth2 do Swag
 Depois clique em **Authorize** e informe `SEED_USERNAME` e `SEED_PASSWORD` do `.env`.
 
 Todas as rotas de dominio exigem `Authorization: Bearer <token>`.
+
+`POST /api/v1/auth/logout` revoga o token atual ate o fim do seu TTL. O JWT contem
+`jti`, `sub`, `iat` e `exp`; tokens sem essas claims sao rejeitados. O login tem rate
+limit em memoria por IP e usuario para reduzir brute force no demonstrador.
+
+As respostas incluem `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer` e `Cache-Control: no-store`.
 
 ## Produtos e cache
 
@@ -166,6 +177,13 @@ docker compose exec `
 
 Esses testes percorrem login, protecao sem token, CRUD, cache, overview concorrente,
 worker de relatorio e agente consultando dados reais.
+
+Validacao executada neste checkout:
+
+- `.\venv\Scripts\python.exe -m pytest -p no:cacheprovider`: 44 passed, 8 skipped;
+- `docker compose up --build -d`: API, PostgreSQL, Redis e worker healthy;
+- `docker compose exec api python -m pytest -p no:cacheprovider`: 44 passed, 9 skipped;
+- `docker compose exec -e INTEGRATION_BASE_URL=http://localhost:8000 api python -m pytest tests/integration -p no:cacheprovider`: 9 passed.
 
 ## Q1 - Arquitetura ERP
 

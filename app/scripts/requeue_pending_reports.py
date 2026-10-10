@@ -1,7 +1,8 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-from arq.connections import RedisSettings, create_pool
+from arq import create_pool
+from arq.connections import RedisSettings
 from sqlalchemy import select
 
 from app.core.config import get_settings
